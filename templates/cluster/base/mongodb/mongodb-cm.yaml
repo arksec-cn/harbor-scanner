@@ -1,0 +1,60 @@
+{{- if and .Values.cluster.enabled (eq .Values.cluster.mongodb.type "internal") }}
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "arksec.cluster.mongodb" . }}
+  labels:
+{{ include "arksec.labels" . | indent 4 }}
+    component.arksec.io/name: cluster-mongodb
+data:
+  MONGO_INITDB_ROOT_USERNAME: admin
+  MONGO_INITDB_ROOT_PASSWORD: Arksec12345
+  MONGO_INITDB_SCRIPT: |
+    mongo -u "$MONGO_INITDB_ROOT_USERNAME" -p "$MONGO_INITDB_ROOT_PASSWORD" <<EOF
+      db.createUser(
+          {
+              user: "admin",
+              pwd: "Arksec12345",
+              roles: [
+                  {   role: "root",
+                      db: "admin"
+                  }
+              ]
+          }
+      );
+
+      db = db.getSiblingDB('vegeta');
+
+      db.createUser(
+          {
+              user: "$MONGO_INITDB_ROOT_USERNAME",
+              pwd: "$MONGO_INITDB_ROOT_PASSWORD",
+              roles: [
+                  {
+                      role: "readWrite",
+                      db: "vegeta"
+                  },
+                  {
+                      role: "readWrite",
+                      db: "vuln_database"
+                  },
+              ]
+          }
+      );
+
+      vulnDB = db.getSiblingDB('vuln_database');
+      vulnDB.createUser(
+          {
+              user: "$MONGO_INITDB_ROOT_USERNAME",
+              pwd: "$MONGO_INITDB_ROOT_PASSWORD",
+              roles: [
+                  {
+                      role: "readWrite",
+                      db: "vuln_database"
+                  },
+              ]
+          }
+      );
+    EOF
+{{- end -}}

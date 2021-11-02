@@ -1,0 +1,130 @@
+{{- if and .Values.cluster.enabled .Values.cluster.scanner.enabled (eq .Values.cluster.scanner.version "v2") -}}
+apiVersion: {{ include "common.capabilities.deployment.apiVersion" . }}
+kind: Deployment
+metadata:
+  name: {{ include "arksec.cluster.scanner" . }}
+  labels:
+{{ include "arksec.labels" . | indent 4 }}
+    component.arksec.io/name: scanner
+spec:
+  replicas: {{ .Values.cluster.scanner.replicas }}
+  selector:
+    matchLabels:
+{{ include "arksec.selectorLabels" . | indent 6 }}
+      component.arksec.io/name: scanner
+  template:
+    metadata:
+      labels:
+{{ include "arksec.labels" . | indent 8 }}
+        component.arksec.io/name: scanner
+    spec:
+      initContainers:
+      - name: copy-vuln-data
+        image: {{ include "arksec.cluster.scanner.feed.image" . }}
+        imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+        command:
+          - /bin/sh
+          - -c
+        args:
+          - "cp -r /data/trivy/* /trivy/"
+        volumeMounts:
+          - name: trivy-data
+            mountPath: /trivy
+{{ include "common.platform.openshiftPrivileged" . | indent 8 }}
+      - name: copy-av-data
+        image: {{ include "arksec.cluster.scanner.feed.image" . }}
+        imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+        command:
+        - /bin/sh
+        - -c
+        - |
+          cp -r /data/clamav/* /clamav/
+          chmod -R 755 /clamav/
+        volumeMounts:
+        - name: clamav-data
+          mountPath: /clamav
+{{ include "common.platform.openshiftPrivileged" . | indent 8 }}
+      {{- if .Values.common.waitress.enabled }}
+{{ include "common.waitress.container" . | indent 6 }}
+      {{- end }}
+      containers:
+      - name: scanner
+        image: {{ include "arksec.cluster.scanner.image" . }}
+        imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+        command:
+        - "/httpscanner"
+        args:
+        - "--http-listen=:7777"
+        envFrom:
+        - configMapRef:
+            name: {{ include "arksec.cluster.scanner" . }}
+        - configMapRef:
+            name: {{ include "arksec.cluster" . }}-endpoints
+        volumeMounts:
+
+        - name: shared-data
+          mountPath: /data
+        {{- if .Values.cluster.scanner.resources }}
+        resources:
+{{ toYaml .Values.cluster.scanner.resources | indent 10 }}
+        {{- end }}
+      - name: server
+        image: {{ include "arksec.cluster.scanner.server.image" . }}
+        imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+        command:
+        - "scanner"
+        args:
+        - "s"
+        envFrom:
+        - configMapRef:
+            name: {{ include "arksec.cluster.scanner" . }}
+        - configMapRef:
+            name: {{ include "arksec.cluster" . }}-endpoints
+        volumeMounts:
+        - name: trivy-data
+          mountPath: /scanner_data/trivy/
+        {{- if .Values.cluster.scanner.server.resources }}
+        resources:
+{{ toYaml .Values.cluster.scanner.server.resources | indent 10 }}
+        {{- end }}
+
+      {{- if .Values.cluster.scanner.clamav.enabled }}
+      - name: clamav
+        image: {{ include "arksec.cluster.scanner.clamav.image" . }}
+        imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+{{/*        command:*/}}
+{{/*        - /bin/sh*/}}
+{{/*        - -c*/}}
+{{/*        - |*/}}
+{{/*           ls -tlrh  /var/lib/clamav/*/}}
+        envFrom:
+        - configMapRef:
+            name: {{ include "arksec.cluster.scanner" . }}
+        - configMapRef:
+            name: {{ include "arksec.cluster" . }}-endpoints
+        volumeMounts:
+        - name: shared-data
+          mountPath: /data
+        - name: clamav-data
+          mountPath: /var/lib/clamav/
+        {{- if .Values.cluster.scanner.clamav.resources }}
+        resources:
+{{ toYaml .Values.cluster.scanner.clamav.resources | indent 10 }}
+        {{- end }}
+      {{- end }}
+
+      volumes:
+      - emptyDir: {}
+        name: shared-data
+      - emptyDir: {}
+        name: trivy-data
+      - emptyDir: {}
+        name: clamav-data
+
+      imagePullSecrets: 
+{{ include "arksec.global.imagePullSecret" . | indent 8 }}
+      {{- with .Values.cluster.scanner.nodeSelector }}
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+      {{- end -}}
+{{- end -}}

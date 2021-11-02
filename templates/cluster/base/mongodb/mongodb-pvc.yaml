@@ -1,0 +1,39 @@
+{{- if and .Values.persistence.enabled (eq "hostPath" .Values.persistence.type) -}}
+{{ $data := .Values.persistence.cluster.mongodb }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "arksec.cluster.mongodb" . }}
+  labels:
+{{ include "arksec.labels" . | indent 4 }}
+    component.arksec.io/name: cluster-mongodb
+  annotations:
+    helm.sh/resource-policy: keep
+spec:
+  accessModes:
+    - {{ $data.accessMode }}
+  resources:
+    requests:
+      storage: {{ $data.size }}
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ include "arksec.cluster.mongodb" . }}
+  labels:
+{{ include "arksec.labels" . | indent 4 }}
+    component.arksec.io/name: cluster-mongodb
+  annotations:
+    helm.sh/resource-policy: keep
+spec:
+  accessModes:
+    - {{ $data.accessMode }}
+  capacity:
+    storage: {{ $data.size }}
+  hostPath:
+    path: {{ $data.hostPath }}
+  claimRef:
+    namespace: {{ .Release.Namespace }}
+    name: {{ include "arksec.cluster.mongodb" . }}
+{{- end -}}

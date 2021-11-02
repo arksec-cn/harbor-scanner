@@ -1,0 +1,17 @@
+apiVersion: v2
+appVersion: 2.6.1
+description: ArkSec Cloud Native Security Platform
+home: https://www.arksec.cn
+keywords:
+- security
+- devsecops
+- host
+- network
+- images
+- edge
+maintainers:
+- email: tech@arksec.io
+  name: Tech.ArkSec
+name: scanner
+type: application
+version: 2.0.1

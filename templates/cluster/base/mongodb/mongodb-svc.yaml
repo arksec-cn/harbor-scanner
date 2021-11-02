@@ -1,0 +1,27 @@
+{{- if and .Values.cluster.enabled (eq .Values.cluster.mongodb.type "internal") }}
+{{- $isDev := .Values.global.isDev -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "arksec.cluster.mongodb" . }}
+  labels:
+{{ include "arksec.labels" . | indent 4 }}
+    component.arksec.io/name: cluster-mongodb
+spec:
+  type: ClusterIP
+  ports:
+    - port: 27017
+      protocol: TCP
+      targetPort: 27017
+{{- if $isDev }}
+      nodePort: {{ .Values.cluster.mongodb.internal.devNodePort }}
+{{- end }}
+  selector:
+{{ include "arksec.selectorLabels" . | indent 4 }}
+    component.arksec.io/name: cluster-mongodb
+{{- if $isDev }}
+  type: NodePort
+{{- else }}
+  type: ClusterIP
+{{- end }}
+{{- end -}}

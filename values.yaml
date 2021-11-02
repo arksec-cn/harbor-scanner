@@ -1,0 +1,291 @@
+# Release and apps names
+nameOverride: ""
+fullnameOverride: ""
+
+# global是全局配置，这里的优先级是最高的
+# TODO：镜像的配置迁移到default
+global:
+  # kubeVersion是Kubernetes集群版本
+  # 如果设置这个值的话，会优先使用它。如果不设置的话，会使用目标集群的实际版本号。
+  #kubeVersion: v1.20.2
+
+  # kubePlatform是Kubernetes集群类型
+  # "kubernetes" or "openshift"
+  kubePlatform: kubernetes
+  
+  # imageRegistry是目标仓库地址
+  # 它也会被用作默认的镜像前缀，也就是说所有的镜像应当存在于同一个仓库中。
+  imageRegistry: registry.arksec.cn
+  # imageRegistry的用户登陆用户名和密码
+  imageRegistryUsername: readonly
+  imageRegistryPassword: Arksec12345
+  
+  imageProject: himalaya/dev
+  imageTag: latest
+  publicImageProject: public/dev
+  publicImageTag: latest
+
+  #imagePullPolicy是镜像拉取策略
+  # 如果镜像的tag是latest的话，这个值应该保持Always，其他情况应该是IfNotPresent。
+  # 也就是说研发环境是Always，交付环境是IfNotPresent。
+  imagePullPolicy: 'Always'
+
+  # isDev代表着您部署的是开发环境
+  # 它会将基础组件的svc使用NodePort方式暴露
+  isDev: false
+  arch: amd64
+
+  # 填写API Server地址
+  meta:
+    project: "dev"
+    apiServer: "https://kubernetes.default.svc.cluster.local:443"
+
+# TODO:
+# default是默认配置，这里的优先级是最低的。
+default:
+
+# TODO:
+expose:
+  # 设置如何暴露服务，支持“ingress”、“nodePort”和“LoadBalance”三种类型。
+  type: ingress
+  tls:
+    # 是否开启TLS加密通信
+    enabled: true
+    # 如果您想使用您自己的证书，将证书的名字放置于cert目录下，并且证书名称改成下面约定的名称。
+    # "tls.crt" - the certificate (required)
+    # "tls.key" - the private key (required)
+    # "ca.crt" - the certificate of CA (optional)
+    # 如果secretName没有被创建，上面这些文件会被自动创建成TLS的Secret。
+    secretName: ""
+    #  common name 是用来创建 certificate，这非常重要。
+    # 当类型不是 "ingress" 并且 "secretName" 是空的时候请设置commonName。
+    commonName: "arksec"
+  ingress:
+    hosts:
+      backend: backend.security.arksec.cn
+    controller: default
+    annotations:
+      ingress.kubernetes.io/ssl-redirect: "true"
+      ingress.kubernetes.io/proxy-body-size: "0"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/proxy-body-size: "0"
+  clusterIP:
+    # ClusterIP Service名称
+    name: arksec
+    ports:
+
+      backend:
+        # backend监听在http模式时候的端口号
+        httpPort: 8080
+        # backend监听在https模式时候的端口号
+  nodePort:
+    # NodePort Service名称
+    name: Arksec
+    ports:
+
+      backend:
+        # backend的Service端口号
+        port: 4443
+        # backend的NodePort端口号
+
+  loadBalancer:
+    # LoadBalance Service名称
+    name: Arksec
+    # 设置lb的ip地址
+    IP: ""
+    ports:
+
+      scanner:
+        # backend的Service端口号
+        port: 4443
+        # backend的NodePort端口号
+        nodePort: 30777
+
+# TODO:
+# 开启组件内部TLS加密通信
+internalTLS:
+  # If internal TLS enabled
+  enabled: false
+
+# 数据模块持久化存储配置
+persistence:
+  # 设置是否开启数据持久化，如果false的话，数据将使用emptyDir进行存储，数据跟随Pod生命周期。
+  enabled: true
+  # 设置如何持久化数据存储，支持”existingClaim“，”hostPath“和”storageClass“三种类型。
+  type: "storageClass"
+
+  cluster:
+    mongodb:
+      storageClass: "local-path"
+      existingClaim: "data-himalaya-arksec-cluster-base-mongodb-0"
+      hostPath: "/mnt/arksec/data/cluster/mongodb"
+      accessMode: ReadWriteOnce
+      size: 5Gi
+
+
+common:
+  # waitress模块
+  # waitress是一个能够等待基础组件Ready的initContainer
+  waitress:
+    enabled: true
+    interval: 5s
+    image:
+      # registry: 
+      # project: 
+      # tag:
+      repository: helper
+    resources:
+      requests:
+        memory: 128Mi
+        cpu: 50m
+      limits:
+        memory: 192Mi
+        cpu: 100m
+
+# 集群安全引擎
+# 可以通过cluster.enabled控制是否部署。
+cluster:
+  enabled: true
+
+  # 自定义的集群名称，这个将在console的集群管理中显示。
+  name: default
+  # 自定义的集群key，确保全局唯一。
+  key: ced69b11f71d0067a6a54120e36aea4f
+  
+  # 设置集群的配置信息
+  # cri.type支持 "docker", "containerd"
+  # cni.type支持 "calico", "flannel"
+  cri:
+    type: docker
+    apiVersion: "1.37"
+
+  cni:
+    type: calico
+    apiVersion: "3.17"
+  
+  # TODO:
+  # 设置集群的操作系统类型和内核版本
+  # 操作系统类型支持“centos”或者“ubuntu”
+  # kernel版本是在目标操作系统`uname -r`所获取的值
+  os:
+    release: centos
+    kernelVersion: 3.10.0-1160.el7.x86_64
+
+  migrate:
+    enabled: true
+    image:
+      # registry:
+      # project:
+      # tag:
+      repository: migrate
+    resources:
+      requests:
+        memory: 256Mi
+        cpu: 100m
+      limits:
+        memory: 512Mi
+        cpu: 200m
+    nodeSelector:
+      kubernetes.io/os: linux
+
+  # waitress模块
+  # waitress是一个能够等待基础组件Ready的initContainer
+  waitress:
+    image:
+      # registry: 
+      # project:
+      # tag:
+      repository: waitress
+    resources:
+      requests:
+        memory: 128Mi
+        cpu: 50m
+      limits:
+        memory: 192Mi
+        cpu: 100m
+
+  # scanner模块：scanner和webhook
+  # 通过对应模块下的enabled开关控制是否部署
+  scanner:
+    enabled: true
+    # "v1" or "v2", but now "v1" does not support.
+    version: "v2"
+    replicas: 1
+    image:
+      # registry:
+      # project:
+      # tag:
+      repository: http-scanner
+
+    resources:
+      requests:
+        memory: 256Mi
+        cpu: 100m
+      limits:
+        memory: 512Mi
+        cpu: 200m
+    nodeSelector:
+      kubernetes.io/os: linux
+
+    server:
+      image:
+        # registry:
+        # project:
+        # tag:
+        repository: image-scanner
+      resources:
+        requests:
+          memory: 256Mi
+          cpu: 100m
+        limits:
+          memory: 512Mi
+          cpu: 200m
+    feed:
+      image:
+        # registry:
+        # project:
+        # tag:
+        repository: feed
+      resources:
+        requests:
+          memory: 256Mi
+          cpu: 100m
+        limits:
+          memory: 512Mi
+          cpu: 200m
+
+    clamav:
+      enabled: true
+      image:
+        # registry:
+        # project:
+        # tag:
+        repository: clamav
+
+  # mongodb模块
+  mongodb:
+    # 如果使用外部的实例，将type设置为“external”
+    # 并完成外部实例的信息填写，包括实例地址，用户名密码等信息
+    type: internal
+    internal:
+      image:
+        # registry:
+        # project:
+        # tag:
+        repository: mongo
+        sha: a6838e9a6ff6ab3624720a7bd36152dda540ce3987714398003e14780e61478a
+      resources:
+        requests:
+          memory: 256Mi
+          cpu: 100m
+      nodeSelector:
+        kubernetes.io/os: linux
+      # 是否是dev环境
+      isDev: true
+      # dev环境下的svc的nodePort端口。
+      devNodePort: 30771
+    external:
+      host: "192.168.0.1"
+      port: "5432"
+      username: "admin"
+      password: "Arksec12345"

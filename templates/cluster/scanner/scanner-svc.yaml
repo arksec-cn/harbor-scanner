@@ -1,0 +1,19 @@
+{{- if .Values.cluster.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "arksec.cluster.scanner" . }}
+  labels:
+{{ include "arksec.labels" . | indent 4 }}
+    component.arksec.io/name: scanner
+spec:
+  ports:
+    - port: 7777
+      protocol: TCP
+      targetPort: 7777
+      nodePort: 30777
+  selector:
+{{ include "arksec.selectorLabels" . | indent 4 }}
+    component.arksec.io/name: scanner
+  type: NodePort
+{{- end -}}

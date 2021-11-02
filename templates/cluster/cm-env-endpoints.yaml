@@ -1,0 +1,14 @@
+{{- if .Values.cluster.enabled -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "arksec.cluster" . }}-endpoints
+  labels:
+{{ include "arksec.labels" . | indent 4 }}
+data:  
+  MONGO_ENDPOINT: {{ include "arksec.cluster.mongodb.host" . }}:{{ include "arksec.cluster.mongodb.port" . }}
+  MONGO_USERNAME: {{ include "arksec.cluster.mongodb.username" . }}
+  ENDPOINTS_CONFIG: {{ include "arksec.cluster" . }}-endpoints
+  MONGO_PASSWORD: {{ include "arksec.cluster.mongodb.rawPassword" . }} 
+
+{{- end -}}

@@ -1,0 +1,100 @@
+{{- if and .Values.cluster.enabled (eq .Values.cluster.mongodb.type "internal") }}
+apiVersion: {{ include "common.capabilities.statefulset.apiVersion" . }}
+kind: StatefulSet
+metadata:
+  name: {{ include "arksec.cluster.mongodb" . }}
+  labels:
+{{ include "arksec.labels" . | indent 4 }}
+    component.arksec.io/name: cluster-mongodb
+spec:
+  serviceName: "cluster-mongodb"
+  replicas: 1
+  selector:
+    matchLabels:
+{{ include "arksec.selectorLabels" . | indent 6 }}
+      component.arksec.io/name: cluster-mongodb
+  template:
+    metadata:
+      labels:
+{{ include "arksec.labels" . | indent 8 }}
+        component.arksec.io/name: cluster-mongodb
+    spec:
+      containers:
+      - name: mongodb
+        image: {{ include "arksec.cluster.mongodb.image" . }}
+        imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+{{ include "common.platform.openshiftPrivileged" . | indent 8}}
+
+        env:
+        - name: MONGO_INITDB_ROOT_USERNAME
+          valueFrom:
+            configMapKeyRef:
+              key: MONGO_INITDB_ROOT_USERNAME
+              name: {{ include "arksec.cluster.mongodb" . }}
+        - name: MONGO_INITDB_ROOT_PASSWORD
+          valueFrom:
+            configMapKeyRef:
+              key: MONGO_INITDB_ROOT_PASSWORD
+              name: {{ include "arksec.cluster.mongodb" . }}
+        ports:
+        - containerPort: 27017
+{{- if .Values.cluster.mongodb.internal.resources }}
+        resources:
+{{ toYaml .Values.cluster.mongodb.internal.resources | indent 10 }}
+{{- end }}
+        lifecycle:
+          preStop:
+            exec:
+              command:
+              - sh
+              - -c
+              - rm -rf /data/db/WiredTiger /data/db/WiredTiger.lock /data/db/mongod.lock
+        volumeMounts:
+        - mountPath: /docker-entrypoint-initdb.d/setup.sh
+          name: "init"
+          subPath: MONGO_INITDB_SCRIPT
+        - mountPath: /data/db
+          name: "data"
+      {{- with .Values.cluster.mongodb.internal.nodeSelector }}
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+      {{- end }}
+      volumes:
+      - name: "init"
+        configMap:
+          name: {{ include "arksec.cluster.mongodb" . }}
+      {{- if not .Values.persistence.enabled }}
+      - name: "data"
+        emptyDir: {}
+      {{- else if eq "existingClaim" .Values.persistence.type }}
+      - name: "data"
+        persistentVolumeClaim:
+          claimName: {{ .Values.persistence.cluster.mongodb.existingClaim }}
+      {{- else if eq "hostPath" .Values.persistence.type }}
+      - name: "data"
+        persistentVolumeClaim:
+          claimName: {{ include "arksec.cluster.mongodb" . }}
+      {{- end }}
+  {{- if and .Values.persistence.enabled (eq .Values.persistence.type "storageClass") }}
+  {{ $data := .Values.persistence.cluster.mongodb }}
+  volumeClaimTemplates:
+  - metadata:
+      name: "data"
+      labels:
+{{ include "arksec.labels" . | indent 8 }}
+        component.arksec.io/name: cluster-mongodb
+    spec:
+      accessModes: [{{ $data.accessMode | quote }}]
+      {{- if $data.storageClass }}
+      {{- if (eq "-" $data.storageClass) }}
+      storageClassName: ""
+      {{- else }}
+      storageClassName: "{{ $data.storageClass }}"
+      {{- end }}
+      {{- end }}
+      resources:
+        requests:
+          storage: {{ $data.size | quote }}
+  {{- end }}
+
+{{- end -}}
