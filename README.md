@@ -45,7 +45,7 @@ export REDSTONE_RELEASE="scanner"
 export REDSTONE_NAMESPACE="scanner"
 ```
 
-* 研发DEV环境安装
+* 安装
 
 ```bash
 kubectl create ns "${REDSTONE_NAMESPACE}"
