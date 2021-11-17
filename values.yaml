@@ -15,10 +15,10 @@ global:
   
   # imageRegistry是目标仓库地址
   # 它也会被用作默认的镜像前缀，也就是说所有的镜像应当存在于同一个仓库中。
-  imageRegistry: registry.arksec.cn
+  imageRegistry: registry.example.cn
   # imageRegistry的用户登陆用户名和密码
-  imageRegistryUsername: readonly
-  imageRegistryPassword: Arksec12345
+  imageRegistryUsername: UANERNAME
+  imageRegistryPassword: PASSWORD
   
   imageProject: himalaya/dev
   imageTag: latest
@@ -284,8 +284,3 @@ cluster:
       isDev: true
       # dev环境下的svc的nodePort端口。
       devNodePort: 30771
-    external:
-      host: "192.168.0.1"
-      port: "5432"
-      username: "admin"
-      password: "Arksec12345"
