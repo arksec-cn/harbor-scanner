@@ -40,9 +40,9 @@
 * 设置一次环境变量，在后续的操作中，都有可能使用这些变量。
 
 ```bash
-export REDSTONE_CHART="arksec"
-export REDSTONE_RELEASE="scanner"
-export REDSTONE_NAMESPACE="scanner"
+export REDSTONE_CHART="scanner"
+export REDSTONE_RELEASE="[RELEASE]"
+export REDSTONE_NAMESPACE="[NAMESPACE]"
 ```
 
 * 安装
