@@ -72,15 +72,15 @@ _See [helm install](https://helm.sh/docs/helm/helm_install/) for command documen
 
 1. Add ArkSec Harbor Scanner Adapter
 
-<img src="doc/configuration/add_adapter.png" width="61.8%">
+<img src="doc/configuration/add_adapter.png" width="100%">
 
 2. Add Succeeded.
 
-<img src="doc/configuration/adapter_status.png" width="61.8%">
+<img src="doc/configuration/adapter_status.png" width="100%">
 
 3. Scan an artifact
 
-<img src="doc/configuration/vuln.png" width="61.8%">
+<img src="doc/configuration/vuln.png" width="100%">
 
 ## Uninstall
 
