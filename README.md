@@ -10,7 +10,7 @@ English | [简体中文]()
 
 ```console
 $ kubectl create namespace arksec-system
-$ kubectl apply --filename https://arksec-cn.github.io/harbor-scanner/all-in-one.yaml --namespace arksec-system
+$ kubectl apply --filename https://raw.githubusercontent.com/arksec-cn/harbor-scanner/main/all-in-one.yaml --namespace arksec-system
 ```
 
 ## Before you begin
@@ -30,7 +30,7 @@ To install ArkSec Harbor Scanner on a Kubernetes cluster with kubectl:
 
 ```console
 $ kubectl create namespace arksec-system
-$ kubectl apply --filename https://arksec-cn.github.io/harbor-scanner/all-in-one.yaml --namespace arksec-system
+$ kubectl apply --filename https://raw.githubusercontent.com/arksec-cn/harbor-scanner/main/all-in-one.yaml --namespace arksec-system
 ```
 
 2. Monitor the installation using the following command until all components show a Running status:
@@ -87,7 +87,7 @@ _See [helm install](https://helm.sh/docs/helm/helm_install/) for command documen
 ### Uninstalling Scanner
 
 ```console
-$ kubectl delete --filename https://arksec-cn.github.io/harbor-scanner/all-in-one.yaml --namespace arksec-system
+$ kubectl delete --filename https://raw.githubusercontent.com/arksec-cn/harbor-scanner/main/all-in-one.yaml --namespace arksec-system
 $ kubectl delete namespace arksec-system
 ```
 
