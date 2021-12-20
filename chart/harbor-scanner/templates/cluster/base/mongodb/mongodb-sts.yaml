@@ -1,4 +1,3 @@
-{{- if and .Values.cluster.enabled (eq .Values.cluster.mongodb.type "internal") }}
 apiVersion: {{ include "common.capabilities.statefulset.apiVersion" . }}
 kind: StatefulSet
 metadata:
@@ -24,7 +23,6 @@ spec:
         image: {{ include "arksec.cluster.mongodb.image" . }}
         imagePullPolicy: {{ .Values.global.imagePullPolicy }}
 {{ include "common.platform.openshiftPrivileged" . | indent 8}}
-
         env:
         - name: MONGO_INITDB_ROOT_USERNAME
           valueFrom:
@@ -38,9 +36,9 @@ spec:
               name: {{ include "arksec.cluster.mongodb" . }}
         ports:
         - containerPort: 27017
-{{- if .Values.cluster.mongodb.internal.resources }}
+{{- with .Values.mongodb.resources }}
         resources:
-{{ toYaml .Values.cluster.mongodb.internal.resources | indent 10 }}
+{{ toYaml . | indent 10 }}
 {{- end }}
         lifecycle:
           preStop:
@@ -55,7 +53,7 @@ spec:
           subPath: MONGO_INITDB_SCRIPT
         - mountPath: /data/db
           name: "data"
-      {{- with .Values.cluster.mongodb.internal.nodeSelector }}
+      {{- with .Values.mongodb.nodeSelector }}
       nodeSelector:
 {{ toYaml . | indent 8 }}
       {{- end }}
@@ -96,5 +94,3 @@ spec:
         requests:
           storage: {{ $data.size | quote }}
   {{- end }}
-
-{{- end -}}

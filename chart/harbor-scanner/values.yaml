@@ -1,0 +1,119 @@
+# Release and apps names
+nameOverride: ""
+fullnameOverride: ""
+
+# Global Settings
+global:
+  #kubeVersion: v1.20.2
+  
+  # "kubernetes" or "openshift"
+  kubePlatform: kubernetes
+
+  imageRegistry: docker.io
+  imageProject: arksec
+  imagePullPolicy: 'Always'
+
+persistence:
+  # 设置是否开启数据持久化，如果false的话，数据将使用emptyDir进行存储，数据跟随Pod生命周期。
+  enabled: false
+  # 设置如何持久化数据存储，支持”existingClaim“，”hostPath“和”storageClass“三种类型。
+  type: "storageClass"
+  cluster:
+    mongodb:
+      storageClass: "local-path"
+      existingClaim: "data-himalaya-arksec-console-base-mongodb-0"
+      hostPath: "/mnt/arksec/data/console/mongodb"
+      accessMode: ReadWriteOnce
+      size: 5Gi
+
+scanner:
+  replicas: 1
+  # nodeSelector:
+  #   kubernetes.io/os: linux
+  init:
+    image:
+      # registry:
+      # project:
+      tag: scanner-init-v1.0.0
+      repository: harbor-scanner
+    resources:
+      requests:
+        memory: 256Mi
+        cpu: 100m
+      limits:
+        memory: 512Mi
+        cpu: 200m
+  engine:
+    image:
+      # registry:
+      # project:
+      tag: scanner-engine-v1.0.0
+      repository: harbor-scanner
+    # resources:
+    #   requests:
+    #     memory: 256Mi
+    #     cpu: 100m
+    #   limits:
+    #     memory: 512Mi
+    #     cpu: 200m
+  server:
+    image:
+      # registry:
+      # project:
+      tag: scanner-server-v1.0.0
+      repository: harbor-scanner
+    # resources:
+    #   requests:
+    #     memory: 256Mi
+    #     cpu: 100m
+    #   limits:
+    #     memory: 512Mi
+    #     cpu: 200m
+  clamav:
+    enabled: true
+    image:
+      # registry:
+      # project:
+      tag: scanner-clamav-v1.0.0
+      repository: harbor-scanner
+migrate:
+  image:
+    # registry:
+    # project:
+    tag: migrate-v1.0.0
+    repository: harbor-scanner
+  # resources:
+  #   requests:
+  #     memory: 256Mi
+  #     cpu: 100m
+  #   limits:
+  #     memory: 512Mi
+  #     cpu: 200m
+  # nodeSelector:
+  #   kubernetes.io/os: linux
+mongodb:
+  image:
+    # registry:
+    # project:
+    tag: mongodb-v1.0.0
+    repository: harbor-scanner
+  # resources:
+  #   requests:
+  #     memory: 256Mi
+  #     cpu: 100m
+  # nodeSelector:
+  #   kubernetes.io/os: linux
+waitress:
+  image:
+    # registry:
+    # project:
+    tag: shell-v1.0.0
+    repository: harbor-scanner
+  # resources:
+  #   requests:
+  #     memory: 256Mi
+  #     cpu: 100m
+  #   limits:
+  #     memory: 512Mi
+  #     cpu: 200m
+  interval: 10s

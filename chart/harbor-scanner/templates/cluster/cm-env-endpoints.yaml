@@ -1,4 +1,3 @@
-{{- if .Values.cluster.enabled -}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -10,5 +9,3 @@ data:
   MONGO_USERNAME: {{ include "arksec.cluster.mongodb.username" . }}
   ENDPOINTS_CONFIG: {{ include "arksec.cluster" . }}-endpoints
   MONGO_PASSWORD: {{ include "arksec.cluster.mongodb.rawPassword" . }} 
-
-{{- end -}}

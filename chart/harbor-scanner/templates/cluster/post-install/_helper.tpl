@@ -1,5 +1,5 @@
 {{/*Compenents Names*/}}
 {{- define "arksec.cluster.init" -}}
-  {{- printf "%s-cluster-init" (include "arksec.fullname" .) -}}
+  {{- printf "%s-init" (include "arksec.fullname" .) -}}
 {{- end -}}
 

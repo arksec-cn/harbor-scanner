@@ -1,76 +1,113 @@
 # Arksec Harbor Image Scanner
 
-English | [简体中文](README-zh_CN.md)
-## Introdution
+English | [简体中文]()
+
+`Arksec Harbor Image Scanner` is the scanner which focus on scanning container images in Harbor image repository.
 
 [Arksec Inc](https://www.arksec.cn/) is a start-up security company providing complete cloud native security solution.
-[`Arksec Harbor Image Scanner`] is the scanner which focus on scanning container images in Harbor image repository.
 
-## Compatibility
+## TL;DR
 
-### OS Release
-
-- CentOS/RHEL 7-8系列
-
-- Ubuntu 16.04, 18.04, 20.04
-
-- SUSE Linux SP3/SP4/SP5
-
-- 麒麟V10
-
-### OS/Arch
-
-- amd64
-
-- arm64
-
-### Orchestrator
-
-- Kubernetes 1.12 - 1.20
-- Openshift Container Platform 4.6 - 4.7
-
-### Helm
-
-- Helm 3.1.0+
-
-## Installation 🚀
-
-* Set Environment Variable
-
-```bash
-export REDSTONE_CHART="scanner"
-export REDSTONE_RELEASE="[RELEASE]"
-export REDSTONE_NAMESPACE="[NAMESPACE]"
+```console
+$ kubectl create namespace arksec-system
+$ kubectl apply --filename https://arksec-cn.github.io/harbor-scanner/all-in-one.yaml --namespace arksec-system
 ```
 
-* Install
+## Before you begin
 
-```bash
-kubectl create ns "${REDSTONE_NAMESPACE}"
+### Prerequisites
 
-helm install "${REDSTONE_RELEASE}" -n "${REDSTONE_NAMESPACE}" ./ \
---set global.imageProject=himalaya/dev \
---set global.imageTag=latest \
---set global.publicImageProject=public/dev \
---set global.publicImageTag=latest \
---set global.imagePullPolicy=IfNotPresent \
---set persistence.enabled=true \
---set persistence.type=hostPath
+- Kubernetes 1.16+
+- Helm 3+
+
+## Installation
+
+### Installing Scanner with kubectl
+
+To install ArkSec Harbor Scanner on a Kubernetes cluster with kubectl:
+
+1. Run the following command to install ArkSec Harbor Scanner and its dependencies:
+
+```console
+$ kubectl create namespace arksec-system
+$ kubectl apply --filename https://arksec-cn.github.io/harbor-scanner/all-in-one.yaml --namespace arksec-system
 ```
 
-## Uninstall😭
+2. Monitor the installation using the following command until all components show a Running status:
 
-1. Remove Helm Release
-
-```bash
-helm delete "${REDSTONE_RELEASE}" -n "${REDSTONE_NAMESPACE}"
+```console
+$ kubectl get pods --namespace arksec-system --watch 
 ```
 
-2. Remove PV和PVC
+3. The scanner will listen on node port 30777:
 
-```bash
-# Linux
-kubectl get pvc -n "${REDSTONE_NAMESPACE}" -l app.kubernetes.io/name="${REDSTONE_CHART}" -l app.kubernetes.io/instance="${REDSTONE_RELEASE}" -o=jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' | xargs -i kubectl delete pvc {} -n "${REDSTONE_NAMESPACE}"
-
-kubectl get pv -l app.kubernetes.io/name="${REDSTONE_CHART}" -l app.kubernetes.io/instance="${REDSTONE_RELEASE}" -o=jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' | xargs -i kubectl delete pv {}
+```console
+$ kubectl get svc --namespace arksec-system
 ```
+
+### Installing Scanner with helm
+
+To install ArkSec Harbor Scanner on a Kubernetes cluster with helm:
+
+1. Get Chart
+
+```console
+$ git clone https://github.com/arksec-cn/harbor-scanner.git
+```
+
+<!-- _See [helm repo](https://helm.sh/docs/helm/helm_repo/) for command documentation._ -->
+
+2. Install Chart
+
+```console
+$ helm upgrade [RELEASE_NAME] chart/harbor-scanner/ --install --create-namespace --namespace [RELEASE_NAMESPACE]
+```
+
+<!-- _See [configuration](#configuration) below._ -->
+
+_See [helm install](https://helm.sh/docs/helm/helm_install/) for command documentation._
+
+
+## Configuration
+
+1. Add ArkSec Harbor Scanner Adapter
+
+<img src="doc/configuration/add_adapter.png" width="61.8%">
+
+2. Add Succeeded.
+
+<img src="doc/configuration/adapter_status.png" width="61.8%">
+
+3. Scan an artifact
+
+<img src="doc/configuration/vuln.png" width="61.8%">
+
+## Uninstall
+
+### Uninstalling Scanner
+
+```console
+$ kubectl delete --filename https://arksec-cn.github.io/harbor-scanner/all-in-one.yaml --namespace arksec-system
+$ kubectl delete namespace arksec-system
+```
+
+### Uninstalling Scanner with helm
+
+```console
+$ helm uninstall [RELEASE_NAME] --namespace [RELEASE_NAMESPACE]
+```
+
+This removes all the Kubernetes components associated with the chart and deletes the release.
+
+_See [helm uninstall](https://helm.sh/docs/helm/helm_uninstall/) for command documentation._
+
+# License
+
+Copyright (c) 2020-2021 ArkSec
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+

@@ -1,0 +1,546 @@
+---
+# Source: scanner/templates/cluster/base/mongodb/mongodb-cm.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: arksec-scanner-mongodb
+  labels:
+    helm.sh/chart: scanner-0.1.0
+    
+    app.kubernetes.io/name: arksec
+    app.kubernetes.io/instance: arksec
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+    component.arksec.io/name: cluster-mongodb
+data:
+  MONGO_INITDB_ROOT_USERNAME: admin
+  MONGO_INITDB_ROOT_PASSWORD: Arksec12345
+  MONGO_INITDB_SCRIPT: |
+    mongo -u "$MONGO_INITDB_ROOT_USERNAME" -p "$MONGO_INITDB_ROOT_PASSWORD" <<EOF
+      db.createUser(
+          {
+              user: "admin",
+              pwd: "Arksec12345",
+              roles: [
+                  {   role: "root",
+                      db: "admin"
+                  }
+              ]
+          }
+      );
+
+      db = db.getSiblingDB('vegeta');
+
+      db.createUser(
+          {
+              user: "$MONGO_INITDB_ROOT_USERNAME",
+              pwd: "$MONGO_INITDB_ROOT_PASSWORD",
+              roles: [
+                  {
+                      role: "readWrite",
+                      db: "vegeta"
+                  },
+                  {
+                      role: "readWrite",
+                      db: "vuln_database"
+                  },
+              ]
+          }
+      );
+
+      vulnDB = db.getSiblingDB('vuln_database');
+      vulnDB.createUser(
+          {
+              user: "$MONGO_INITDB_ROOT_USERNAME",
+              pwd: "$MONGO_INITDB_ROOT_PASSWORD",
+              roles: [
+                  {
+                      role: "readWrite",
+                      db: "vuln_database"
+                  },
+              ]
+          }
+      );
+    EOF
+---
+# Source: scanner/templates/cluster/cm-env-common.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: arksec-scanner-cluster-common
+  labels:
+    helm.sh/chart: scanner-0.1.0
+    
+    app.kubernetes.io/name: arksec
+    app.kubernetes.io/instance: arksec
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+data:
+  PLATFORM: "kubernetes"
+  PLATFORM_VERSION: "1.20"
+  CONFIG_FOLDER: /arksec/config/
+  CLUSTER_NAME: "default"
+  PLATFORM: "kubernetes"
+  PLATFORM_VERSION: "1.20"
+  CONTAINER_RUNTIME: "docker"
+  DOCKER_API_VERSION: "1.40"
+  CONFIG_FOLDER: /arksec/config/
+---
+# Source: scanner/templates/cluster/cm-env-endpoints.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: arksec-scanner-cluster-endpoints
+  labels:
+    helm.sh/chart: scanner-0.1.0
+    
+    app.kubernetes.io/name: arksec
+    app.kubernetes.io/instance: arksec
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+data:  
+  MONGO_ENDPOINT: arksec-scanner-mongodb:27017
+  MONGO_USERNAME: admin
+  ENDPOINTS_CONFIG: arksec-scanner-cluster-endpoints
+  MONGO_PASSWORD: Arksec12345
+---
+# Source: scanner/templates/cluster/scanner/scanner-cm-env.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: arksec-scanner-scanner
+  labels:
+    helm.sh/chart: scanner-0.1.0
+    
+    app.kubernetes.io/name: arksec
+    app.kubernetes.io/instance: arksec
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+    component.arksec.io/name: scanner
+data:
+  CLAMAV_ADDR: 127.0.0.1
+  CLAMAV_PORT: "3310"
+  CLAMAV_MAP_FOLDER: /data
+  CLAMAV_DST_FOLDER: /data
+  XDG_CACHE_HOME: /scanner_data/
+  REDSTONE_LISTEN: localhost:8080
+  REDSTONE_TIMEOUT: 600s
+---
+# Source: scanner/templates/cluster/base/mongodb/mongodb-svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: arksec-scanner-mongodb
+  labels:
+    helm.sh/chart: scanner-0.1.0
+    
+    app.kubernetes.io/name: arksec
+    app.kubernetes.io/instance: arksec
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+    component.arksec.io/name: cluster-mongodb
+spec:
+  type: ClusterIP
+  ports:
+    - port: 27017
+      protocol: TCP
+      targetPort: 27017
+  selector:
+    
+    app.kubernetes.io/name: arksec
+    app.kubernetes.io/instance: arksec
+    component.arksec.io/name: cluster-mongodb
+  type: ClusterIP
+---
+# Source: scanner/templates/cluster/scanner/scanner-svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: arksec-scanner-scanner
+  labels:
+    helm.sh/chart: scanner-0.1.0
+    
+    app.kubernetes.io/name: arksec
+    app.kubernetes.io/instance: arksec
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+    component.arksec.io/name: scanner
+spec:
+  ports:
+    - port: 7777
+      protocol: TCP
+      targetPort: 7777
+      nodePort: 30777
+  selector:
+    
+    app.kubernetes.io/name: arksec
+    app.kubernetes.io/instance: arksec
+    component.arksec.io/name: scanner
+  type: NodePort
+---
+# Source: scanner/templates/cluster/scanner/scanner-dpl.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: arksec-scanner-scanner
+  labels:
+    helm.sh/chart: scanner-0.1.0
+    
+    app.kubernetes.io/name: arksec
+    app.kubernetes.io/instance: arksec
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+    component.arksec.io/name: scanner
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      
+      app.kubernetes.io/name: arksec
+      app.kubernetes.io/instance: arksec
+      component.arksec.io/name: scanner
+  template:
+    metadata:
+      labels:
+        helm.sh/chart: scanner-0.1.0
+        
+        app.kubernetes.io/name: arksec
+        app.kubernetes.io/instance: arksec
+        app.kubernetes.io/version: "1.0.0"
+        app.kubernetes.io/managed-by: Helm
+        component.arksec.io/name: scanner
+    spec:
+      initContainers:
+      - name: copy-vuln-data
+        image: docker.io/arksec/harbor-scanner:scanner-init-v1.0.0
+        imagePullPolicy: Always
+        command:
+          - /bin/sh
+          - -c
+        args:
+          - "cp -r /data/trivy/* /trivy/"
+        volumeMounts:
+          - name: trivy-data
+            mountPath: /trivy
+      - name: copy-av-data
+        image: docker.io/arksec/harbor-scanner:scanner-init-v1.0.0
+        imagePullPolicy: Always
+        command:
+        - /bin/sh
+        - -c
+        - |
+          cp -r /data/clamav/* /clamav/
+          chmod -R 755 /clamav/
+        volumeMounts:
+        - name: clamav-data
+          mountPath: /clamav
+      - name: waitress
+        image: docker.io/arksec/harbor-scanner:shell-v1.0.0
+        imagePullPolicy: Always
+        envFrom:
+        - configMapRef:
+            name: arksec-scanner-cluster-endpoints
+        command:
+        - bash
+        - -c
+        - | 
+          #!/usr/bin/env bash
+          set -x
+          GREEN='\033[38;5;2m'
+          YELLOW='\033[38;5;3m'
+      
+          stderr_print() {
+              local -r bool="${BITNAMI_QUIET:-false}"
+              shopt -s nocasematch
+              if ! [[ "$bool" = 1 || "$bool" =~ ^(yes|true)$ ]]; then
+                  printf "%b\\n" "${*}" >&2
+              fi
+          }
+      
+          log() {
+              stderr_print "${CYAN}${MODULE:-} ${MAGENTA}$(date "+%T.%2N ")${RESET}${*}"
+          }
+      
+          info() {
+              log "${GREEN}INFO ${RESET} ==> ${*}"
+          }
+      
+          warn() {
+              log "${YELLOW}WARN ${RESET} ==> ${*}"
+          }
+      
+          function check_all() {
+          if [ "${MONGO_ENDPOINT}" ]; then
+            mongo_host=$(echo "${MONGO_ENDPOINT}" | awk -F ":" '{print $1}' )
+            mongo_port=$(echo "${MONGO_ENDPOINT}" | awk -F ":" '{print $2}' )
+            if nc -v -z -w 5 "${mongo_host}" "${mongo_port}" &> /dev/null; then
+              info "*** connected to ${MONGO_ENDPOINT} ***"
+            else
+              warn "*** can not connect to ${MONGO_ENDPOINT} ***"
+            return 1
+            fi
+          fi
+          }
+          function wait_ready() {
+          while :
+          do
+            if check_all; then
+              info "*** check complated. have fun. ***"
+            exit 0
+            fi
+            info "*** sleep 10s and then re-check. ***"
+            sleep 10s
+          done
+          }
+      
+          wait_ready
+      containers:
+      - name: engine
+        image: docker.io/arksec/harbor-scanner:scanner-engine-v1.0.0
+        imagePullPolicy: Always
+        command:
+        - "/httpscanner"
+        args:
+        - "--http-listen=:7777"
+        envFrom:
+        - configMapRef:
+            name: arksec-scanner-scanner
+        - configMapRef:
+            name: arksec-scanner-cluster-endpoints
+        - configMapRef:
+            name: arksec-scanner-cluster-common
+        volumeMounts:
+        - name: shared-data
+          mountPath: /data
+      - name: server
+        image: docker.io/arksec/harbor-scanner:scanner-server-v1.0.0
+        imagePullPolicy: Always
+        command:
+        - "scanner"
+        args:
+        - "s"
+        envFrom:
+        - configMapRef:
+            name: arksec-scanner-scanner
+        - configMapRef:
+            name: arksec-scanner-cluster-endpoints
+        volumeMounts:
+        - name: trivy-data
+          mountPath: /scanner_data/trivy/
+      - name: clamav
+        image: docker.io/arksec/harbor-scanner:scanner-clamav-v1.0.0
+        imagePullPolicy: Always
+        envFrom:
+        - configMapRef:
+            name: arksec-scanner-scanner
+        - configMapRef:
+            name: arksec-scanner-cluster-endpoints
+        volumeMounts:
+        - name: shared-data
+          mountPath: /data
+        - name: clamav-data
+          mountPath: /var/lib/clamav/
+      volumes:
+      - emptyDir: {}
+        name: shared-data
+      - emptyDir: {}
+        name: trivy-data
+      - emptyDir: {}
+        name: clamav-data
+---
+# Source: scanner/templates/cluster/base/mongodb/mongodb-sts.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: arksec-scanner-mongodb
+  labels:
+    helm.sh/chart: scanner-0.1.0
+    
+    app.kubernetes.io/name: arksec
+    app.kubernetes.io/instance: arksec
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+    component.arksec.io/name: cluster-mongodb
+spec:
+  serviceName: "cluster-mongodb"
+  replicas: 1
+  selector:
+    matchLabels:
+      
+      app.kubernetes.io/name: arksec
+      app.kubernetes.io/instance: arksec
+      component.arksec.io/name: cluster-mongodb
+  template:
+    metadata:
+      labels:
+        helm.sh/chart: scanner-0.1.0
+        
+        app.kubernetes.io/name: arksec
+        app.kubernetes.io/instance: arksec
+        app.kubernetes.io/version: "1.0.0"
+        app.kubernetes.io/managed-by: Helm
+        component.arksec.io/name: cluster-mongodb
+    spec:
+      containers:
+      - name: mongodb
+        image: docker.io/arksec/harbor-scanner:mongodb-v1.0.0
+        imagePullPolicy: Always
+        
+        env:
+        - name: MONGO_INITDB_ROOT_USERNAME
+          valueFrom:
+            configMapKeyRef:
+              key: MONGO_INITDB_ROOT_USERNAME
+              name: arksec-scanner-mongodb
+        - name: MONGO_INITDB_ROOT_PASSWORD
+          valueFrom:
+            configMapKeyRef:
+              key: MONGO_INITDB_ROOT_PASSWORD
+              name: arksec-scanner-mongodb
+        ports:
+        - containerPort: 27017
+        lifecycle:
+          preStop:
+            exec:
+              command:
+              - sh
+              - -c
+              - rm -rf /data/db/WiredTiger /data/db/WiredTiger.lock /data/db/mongod.lock
+        volumeMounts:
+        - mountPath: /docker-entrypoint-initdb.d/setup.sh
+          name: "init"
+          subPath: MONGO_INITDB_SCRIPT
+        - mountPath: /data/db
+          name: "data"
+      volumes:
+      - name: "init"
+        configMap:
+          name: arksec-scanner-mongodb
+      - name: "data"
+        emptyDir: {}
+---
+# Source: scanner/templates/dockerconfigjson.yaml
+apiVersion: v1
+metadata:
+  name: arksec-scanner-default-dockerconfigjson
+  labels:
+
+    helm.sh/chart: scanner-0.1.0
+    
+    app.kubernetes.io/name: arksec
+    app.kubernetes.io/instance: arksec
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "0"
+kind: Secret
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: eyJhdXRocyI6eyJkb2NrZXIuaW8iOnsidXNlcm5hbWUiOiIlIXMoPG5pbD4pIiwicGFzc3dvcmQiOiIlIXMoPG5pbD4pIiwiZW1haWwiOiIlIXMoPG5pbD4pIiwiYXV0aCI6IkpTRnpLRHh1YVd3K0tUb2xJWE1vUEc1cGJENHAifX19
+---
+# Source: scanner/templates/cluster/post-install/job-init-mongodb.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: arksec-scanner-init-mongodb
+  labels:
+    helm.sh/chart: scanner-0.1.0
+    
+    app.kubernetes.io/name: arksec
+    app.kubernetes.io/instance: arksec
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+    component.arksec.io/name: init-mongodb
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "30"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 5
+  ttlSecondsAfterFinished: 10000
+  activeDeadlineSeconds: 1000
+  template:
+    metadata:
+      name: arksec-scanner-init-mongodb
+      labels:
+        helm.sh/chart: scanner-0.1.0
+        
+        app.kubernetes.io/name: arksec
+        app.kubernetes.io/instance: arksec
+        app.kubernetes.io/version: "1.0.0"
+        app.kubernetes.io/managed-by: Helm
+        component.arksec.io/name: init-mongodb
+    spec:
+      initContainers:
+      - name: waitress
+        image: docker.io/arksec/harbor-scanner:shell-v1.0.0
+        imagePullPolicy: Always
+        envFrom:
+        - configMapRef:
+            name: arksec-scanner-cluster-endpoints
+        command:
+        - bash
+        - -c
+        - | 
+          #!/usr/bin/env bash
+          set -x
+          GREEN='\033[38;5;2m'
+          YELLOW='\033[38;5;3m'
+      
+          stderr_print() {
+              local -r bool="${BITNAMI_QUIET:-false}"
+              shopt -s nocasematch
+              if ! [[ "$bool" = 1 || "$bool" =~ ^(yes|true)$ ]]; then
+                  printf "%b\\n" "${*}" >&2
+              fi
+          }
+      
+          log() {
+              stderr_print "${CYAN}${MODULE:-} ${MAGENTA}$(date "+%T.%2N ")${RESET}${*}"
+          }
+      
+          info() {
+              log "${GREEN}INFO ${RESET} ==> ${*}"
+          }
+      
+          warn() {
+              log "${YELLOW}WARN ${RESET} ==> ${*}"
+          }
+      
+          function check_all() {
+          if [ "${MONGO_ENDPOINT}" ]; then
+            mongo_host=$(echo "${MONGO_ENDPOINT}" | awk -F ":" '{print $1}' )
+            mongo_port=$(echo "${MONGO_ENDPOINT}" | awk -F ":" '{print $2}' )
+            if nc -v -z -w 5 "${mongo_host}" "${mongo_port}" &> /dev/null; then
+              info "*** connected to ${MONGO_ENDPOINT} ***"
+            else
+              warn "*** can not connect to ${MONGO_ENDPOINT} ***"
+            return 1
+            fi
+          fi
+          }
+          function wait_ready() {
+          while :
+          do
+            if check_all; then
+              info "*** check complated. have fun. ***"
+            exit 0
+            fi
+            info "*** sleep 10s and then re-check. ***"
+            sleep 10s
+          done
+          }
+      
+          wait_ready
+      containers:
+      - name: migrate
+        image: docker.io/arksec/harbor-scanner:migrate-v1.0.0
+        imagePullPolicy: Always
+        command:
+        - /migrate-backend
+        args:
+        - --mongo-endpoint=arksec-scanner-mongodb:27017
+        - --mongo-password=Arksec12345
+        - --mongo-username=admin
+      restartPolicy: Never

@@ -8,6 +8,6 @@
   {{- printf "%s-default-dockerconfigjson" (include "arksec.fullname" .) -}}
 {{- end -}}
 
-{{- define "arksec.common.waitress.image" -}}
-{{ include "common.public.images.image" (dict "imageRoot" .Values.common.waitress.image "global" .Values.global) }}
+{{- define "arksec.waitress.image" -}}
+{{ include "common.images.image" (dict "imageRoot" .Values.waitress.image "global" .Values.global) }}
 {{- end -}}

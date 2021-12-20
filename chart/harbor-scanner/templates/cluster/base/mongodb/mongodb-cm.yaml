@@ -1,5 +1,4 @@
-{{- if and .Values.cluster.enabled (eq .Values.cluster.mongodb.type "internal") }}
-
+---
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -57,4 +56,3 @@ data:
           }
       );
     EOF
-{{- end -}}
