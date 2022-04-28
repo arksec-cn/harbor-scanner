@@ -1,6 +1,6 @@
 # Arksec Harbor Image Scanner
 
-English | [简体中文]()
+English | [简体中文](README-zh_CN.md)
 
 `Arksec Harbor Image Scanner` is the scanner which focus on scanning container images in Harbor image repository.
 
