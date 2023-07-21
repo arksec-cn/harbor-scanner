@@ -6,6 +6,10 @@ English | [简体中文](README-zh_CN.md)
 
 [Arksec Inc](https://www.arksec.cn/) is a start-up security company providing complete cloud native security solution.
 
+## Note
+
+This project has been migrated to [GitHub - arkseclabs/harbor-scanner.](https://github.com/arkseclabs/harbor-scanner)
+
 ## TL;DR
 
 ```console
