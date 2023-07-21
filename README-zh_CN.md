@@ -8,6 +8,10 @@
 
 [`雅客云Harbor镜像扫描平台`]是雅客云安全推出的面向Harbor仓库中的镜像进行扫描的安全产品，可以全面有效的扫描发现镜像中存在的各种安全漏洞。
 
+## 注意事项
+
+该项目已迁移至 [GitHub - arkseclabs/harbor-scanner.](https://github.com/arkseclabs/harbor-scanner)
+
 ### 推荐使用 kubectl 安装
 
 ```console
